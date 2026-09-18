@@ -1,0 +1,30 @@
+# Qt Creator
+.qtcreator/
+
+# CMake build directories
+build/
+cmake-build-*/
+
+# Compiled files
+*.exe
+*.dll
+*.o
+*.obj
+*.a
+*.lib
+
+# Debug / Release output
+Debug/
+Release/
+
+# Visual Studio
+.vs/
+
+# Qt generated files
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# User-specific files
+*.user
+*.user.*
