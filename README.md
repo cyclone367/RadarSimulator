@@ -10,7 +10,17 @@
 
 ## 项目效果
 
-![RadarSimulator运行效果](docs/radar_simulator.png)
+### Windows
+
+![RadarSimulator Windows](docs/radar_simulator.png)
+
+### WSL2 Ubuntu
+
+![RadarSimulator WSL2](docs/radar_simulator_wsl2.png)
+
+### QEMU Ubuntu
+
+![RadarSimulator QEMU Ubuntu](docs/radar_simulator_qemu.png)
 
 ---
 
@@ -28,9 +38,9 @@
 ### 目标探测与航迹跟踪
 
 * 根据雷达波束和探测距离判断目标是否被检测
-* 自动建立 RadarTrack
+* 自动建立 `RadarTrack`
 * 连续检测结果更新航迹
-* Tracking / Lost 状态管理
+* `Tracking / Lost` 状态管理
 * 目标命中次数统计
 * 最近历史航迹保存
 * 速度和角速度估计
@@ -67,7 +77,7 @@
 * 当前目标位置
 * 历史航迹
 * 预测位置
-* Tracking / Lost 状态
+* `Tracking / Lost` 状态
 * 目标编号
 * 目标选择
 * 航迹信息 Inspector
@@ -171,7 +181,7 @@ PPI Radar
 * 目标探测
 * 航迹建立
 * 航迹更新
-* Tracking / Lost
+* `Tracking / Lost`
 * 速度估计
 * 角速度估计
 * 历史数据
@@ -348,7 +358,9 @@ RadarServer
 RadarSimulator/
 │
 ├── docs/
-│   └── radar_simulator.png
+│   ├── radar_simulator.png
+│   ├── radar_simulator_wsl2.png
+│   └── radar_simulator_qemu.png
 │
 ├── shared/
 │   ├── LineBuffer.hpp
@@ -361,6 +373,7 @@ RadarSimulator/
 ├── CMakeLists.txt
 ├── .gitignore
 ├── LICENSE
+├── README.md
 │
 ├── main.cpp
 │
@@ -400,7 +413,7 @@ RadarSimulator/
 
 项目使用 CMake 构建。
 
-开发环境：
+主要开发环境：
 
 ```text
 Windows
@@ -417,6 +430,58 @@ Core
 Widgets
 Network
 ```
+
+---
+
+# 运行环境验证
+
+目前已经完成以下环境的实际运行验证。
+
+### Windows
+
+已验证：
+
+* Qt 6.x
+* C++17
+* CMake
+* MinGW 64-bit
+* RadarSimulator GUI 正常运行
+
+### WSL2 Ubuntu
+
+已验证：
+
+* CMake 配置
+* C++ 编译
+* RadarSimulator GUI 运行
+
+### QEMU + Ubuntu
+
+进一步在 QEMU 虚拟机中的 Ubuntu 环境完成：
+
+* Ubuntu 图形环境运行
+* RadarSimulator GUI 启动
+* RadarSimulator 正常运行
+
+整体验证路径：
+
+```text
+Windows
+   │
+   ▼
+WSL2 Ubuntu
+   │
+   ▼
+QEMU
+   │
+   ▼
+Ubuntu
+   │
+   ▼
+RadarSimulator
+```
+
+以上环境均为本项目的实际运行验证结果。
 
 ---
 
@@ -441,7 +506,9 @@ cmake -S . -B build
 cmake --build build
 ```
 
-编译完成后运行 `RadarSimulator`。
+编译完成后运行生成的 `RadarSimulator` 程序。
+
+> Qt 项目运行时需要对应的 Qt 运行库和平台插件。具体运行方式取决于当前操作系统及 Qt 安装环境。
 
 ---
 
@@ -539,6 +606,7 @@ MOVE 200 150
 * 短期位置预测
 * CMake 多目标项目组织
 * 独立测试程序
+* Windows / WSL2 / QEMU Ubuntu 多环境运行验证
 
 ---
 
