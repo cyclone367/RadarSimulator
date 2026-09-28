@@ -21,16 +21,16 @@ public:
     ~MainWindow();
 
 private:
-    void updateRadarStatus();
-    void updateTrackTable();
-    void updateTrackInspector();
+    void updateRadarStatus();          // 更新雷达状态显示
+    void updateTrackTable();           // 更新目标跟踪列表
+    void updateTrackInspector();       // 更新目标详细信息面板
 
-    void selectTrackFromTable(int row);
-    void selectTrackFromRadar(int targetId);
+    void selectTrackFromTable(int row);       // 根据表格行选择目标
+    void selectTrackFromRadar(int targetId);  // 根据目标ID选择目标
 
-    Ui::MainWindow *ui;
+    Ui::MainWindow *ui;                // UI界面对象，访问Qt Designer中的控件
 
-    RadarServer *server;
-    RadarWidget *radarWidget;
-    QTimer statusTimer;
+    RadarServer *server;               // 雷达TCP服务器对象，负责网络通信
+    RadarWidget *radarWidget;          // 雷达显示控件，负责绘制雷达扫描界面
+    QTimer statusTimer;                // 状态更新定时器，定期刷新界面数据
 };
