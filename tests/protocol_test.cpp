@@ -59,6 +59,38 @@ bool testPosition()
     return true;
 }
 
+bool testMoveParameters(const std::string& input,
+                        bool expectedValid,
+                        int expectedX = 0,
+                        int expectedY = 0)
+{
+    Frame frame = parseLine(input);
+    int x = 0;
+    int y = 0;
+
+    bool valid = parseMoveParameters(frame, x, y);
+
+    if (valid != expectedValid)
+    {
+        std::cout << "[FAIL] " << input
+                  << " -> expected valid=" << expectedValid
+                  << ", got " << valid << '\n';
+        return false;
+    }
+
+    if (valid && (x != expectedX || y != expectedY))
+    {
+        std::cout << "[FAIL] " << input
+                  << " -> expected coordinates "
+                  << expectedX << ' ' << expectedY
+                  << ", got " << x << ' ' << y << '\n';
+        return false;
+    }
+
+    std::cout << "[PASS] " << input << '\n';
+    return true;
+}
+
 // 测试未知指令
 bool testUnknownCommand()
 {
@@ -301,6 +333,14 @@ int main()
     allPassed &= testCommand("GET_POSITION", Command::GetPosition);
 
     allPassed &= testPosition();
+
+    allPassed &= testMoveParameters("MOVE abc 123", false);
+    allPassed &= testMoveParameters("MOVE 100 xyz", false);
+    allPassed &= testMoveParameters(
+        "MOVE 999999999999999999999999 123",
+        false);
+    allPassed &= testMoveParameters("MOVE 100", false);
+    allPassed &= testMoveParameters("MOVE 100 200", true, 100, 200);
 
     allPassed &= testCommand("STATUS OK", Command::Status);
     allPassed &= testCommand("ERROR 404", Command::Error);

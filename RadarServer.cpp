@@ -234,6 +234,8 @@ void RadarServer::onNewConnection()
 
     clients.append(socket);
 
+    clientBuffers.insert(socket, RadarProtocol::LineBuffer());
+
     qDebug() << "New client connected!";
     qDebug() << "Client address:" << socket->peerAddress().toString();
     qDebug() << "Client port:" << socket->peerPort();
@@ -242,6 +244,11 @@ void RadarServer::onNewConnection()
             &QTcpSocket::readyRead,
             this,
             &RadarServer::onReadyRead);
+
+    connect(socket,
+            &QTcpSocket::disconnected,
+            this,
+            &RadarServer::onClientDisconnected);
 }
 
 void RadarServer::onReadyRead()
@@ -255,9 +262,16 @@ void RadarServer::onReadyRead()
 
     QByteArray data = socket->readAll();
 
-    buffer.append(data.toStdString());
+    auto it = clientBuffers.find(socket);
 
-    auto lines = buffer.takeLines();
+    if (it == clientBuffers.end())
+    {
+        return;
+    }
+
+    it.value().append(data.toStdString());
+
+    auto lines = it.value().takeLines();
 
     for (const std::string& line : lines)
     {
@@ -317,7 +331,13 @@ void RadarServer::onReadyRead()
                 continue;
             }
 
-            if (frame.params.size() != 2)
+            int newRadarX = 0;
+            int newRadarY = 0;
+
+            if (!RadarProtocol::parseMoveParameters(
+                    frame,
+                    newRadarX,
+                    newRadarY))
             {
                 QByteArray response = "ERROR INVALID_PARAMS\r\n";
 
@@ -329,8 +349,8 @@ void RadarServer::onReadyRead()
                 continue;
             }
 
-            radarX = std::stoi(frame.params[0]);
-            radarY = std::stoi(frame.params[1]);
+            radarX = newRadarX;
+            radarY = newRadarY;
 
             QByteArray response = "STATUS MOVED\r\n";
 
@@ -347,6 +367,7 @@ void RadarServer::onReadyRead()
         if (frame.command == RadarProtocol::Command::Stop)
         {
             radarRunning = false;
+            stopScan();
 
             QByteArray response = "STATUS STOPPED\r\n";
 
@@ -413,6 +434,20 @@ void RadarServer::onReadyRead()
             qDebug() << "Sent:" << response;
         }
     }
+}
+
+void RadarServer::onClientDisconnected()
+{
+    QTcpSocket *socket = qobject_cast<QTcpSocket*>(sender());
+
+    if (socket == nullptr)
+    {
+        return;
+    }
+
+    clientBuffers.remove(socket);   // 释放该客户端专属缓冲区
+    clients.removeAll(socket);      // 从客户端列表移除
+    socket->deleteLater();          // 延迟释放socket对象
 }
 
 void RadarServer::startScan()

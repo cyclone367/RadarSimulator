@@ -1,6 +1,8 @@
 #pragma once
 
+#include <charconv>
 #include <string>
+#include <system_error>
 #include <vector>
 #include <sstream>
 
@@ -36,6 +38,42 @@ struct Frame
     Command command = Command::Unknown;
     std::vector<std::string> params;
 };
+
+inline bool parseInteger(const std::string& text, int& value)
+{
+    if (text.empty())
+        return false;
+
+    int parsedValue = 0;
+    const char *begin = text.data();
+    const char *end = begin + text.size();
+    const auto result = std::from_chars(begin, end, parsedValue);
+
+    if (result.ec != std::errc() || result.ptr != end)
+        return false;
+
+    value = parsedValue;
+    return true;
+}
+
+inline bool parseMoveParameters(const Frame& frame, int& x, int& y)
+{
+    if (frame.command != Command::Move || frame.params.size() != 2)
+        return false;
+
+    int parsedX = 0;
+    int parsedY = 0;
+
+    if (!parseInteger(frame.params[0], parsedX) ||
+        !parseInteger(frame.params[1], parsedY))
+    {
+        return false;
+    }
+
+    x = parsedX;
+    y = parsedY;
+    return true;
+}
 
 inline Command commandFromString(const std::string& command)
 {

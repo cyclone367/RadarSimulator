@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
 project(RadarSimulator LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network)
 
 qt_standard_project_setup()
@@ -29,7 +33,23 @@ add_executable(tcp_client_test
     tests/tcp_client_test.cpp
 )
 
+add_executable(radar_server_state_test
+    tests/radar_server_state_test.cpp
+    RadarServer.cpp
+    RadarServer.h
+    RadarSimulation.cpp
+    RadarSimulation.h
+    shared/LineProtocol.hpp
+    shared/LineBuffer.hpp
+)
+
 target_link_libraries(tcp_client_test
+    PRIVATE
+        Qt::Core
+        Qt::Network
+)
+
+target_link_libraries(radar_server_state_test
     PRIVATE
         Qt::Core
         Qt::Network
@@ -38,6 +58,7 @@ target_link_libraries(tcp_client_test
 set_target_properties(
     protocol_test
     tcp_client_test
+    radar_server_state_test
     PROPERTIES
         WIN32_EXECUTABLE FALSE
 )

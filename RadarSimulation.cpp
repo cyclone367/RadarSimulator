@@ -251,14 +251,6 @@ void RadarSimulation::processDetection(
 
                 qDebug() << "Calculated angular speed:"
                          << track->estimatedAngularSpeed;
-
-                track->predictedDistance =
-                    track->distance +
-                    track->estimatedSpeed * 3.0;
-
-                track->predictedAngle =
-                    track->angle +
-                    track->estimatedAngularSpeed * 3.0;
             }
         }
         else
@@ -279,6 +271,10 @@ void RadarSimulation::processDetection(
         track->predictedDistance =
             track->distance +
             track->estimatedSpeed * 1.0;
+
+        track->predictedAngle =
+            track->angle +
+            track->estimatedAngularSpeed * 1.0;
 
         track->hitCount++;
 
