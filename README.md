@@ -20,6 +20,8 @@
 
 ## 项目效果
 
+![RadarSimulator 运行效果](docs/radar_simulator.png)
+
 RadarSimulator 使用 Qt6 Widgets 构建桌面界面，通过 TCP 接收控制命令，并在 PPI 区域实时显示雷达扫描和目标状态。
 
 主要功能包括：
@@ -319,6 +321,20 @@ C++17
 ```
 
 推荐使用 Qt Creator，直接打开项目中的 `CMakeLists.txt` 进行配置和编译。
+
+---
+
+## 多环境验证
+
+除了 Windows / Qt 主开发环境之外，项目还在 QEMU 和 WSL2 环境中进行了运行验证。
+
+### QEMU
+
+![RadarSimulator QEMU 运行效果](docs/radar_simulator_qemu.png)
+
+### WSL2
+
+![RadarSimulator WSL2 运行效果](docs/radar_simulator_wsl2.png)
 
 ---
 
