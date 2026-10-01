@@ -1,627 +1,450 @@
 # RadarSimulator
 
-**基于 C++ / Qt 6 / TCP / CMake 实现的桌面雷达模拟器**
+一个基于 **C++17 + Qt6** 开发的桌面雷达模拟器项目。
 
-模拟雷达目标运动、扫描探测、航迹跟踪与短期位置预测，并使用 Qt Widgets 绘制 PPI（Plan Position Indicator）雷达界面。
+项目主要用于学习和实践：
 
-项目同时实现了基于 `QTcpServer / QTcpSocket` 的 TCP 通信、自定义文本协议、TCP 数据分包处理，以及独立的协议测试和 TCP 客户端测试。
+- Qt Widgets 桌面应用开发
+- TCP 网络通信
+- 自定义文本协议
+- 雷达目标与坐标转换
+- PPI 雷达界面绘制
+- QPainter / QConicalGradient
+- CMake
+- Git
+- 自动化测试
+
+项目目前已经实现 TCP 控制、雷达扫描、目标显示、历史航迹、PPI 绘制以及基础测试功能。
 
 ---
 
 ## 项目效果
 
-### Windows
+RadarSimulator 使用 Qt6 Widgets 构建桌面界面，通过 TCP 接收控制命令，并在 PPI 区域实时显示雷达扫描和目标状态。
 
-![RadarSimulator Windows](docs/radar_simulator.png)
+主要功能包括：
 
-### WSL2 Ubuntu
-
-![RadarSimulator WSL2](docs/radar_simulator_wsl2.png)
-
-### QEMU Ubuntu
-
-![RadarSimulator QEMU Ubuntu](docs/radar_simulator_qemu.png)
-
----
-
-## 主要功能
-
-### 雷达模拟
-
-* 多目标运动模拟
-* 雷达 360° 扫描
-* 可调扫描速度
-* 可调波束宽度
-* 可调最大探测距离
-* 目标距离和方位角实时变化
-
-### 目标探测与航迹跟踪
-
-* 根据雷达波束和探测距离判断目标是否被检测
-* 自动建立 `RadarTrack`
-* 连续检测结果更新航迹
-* `Tracking / Lost` 状态管理
-* 目标命中次数统计
-* 最近历史航迹保存
-* 速度和角速度估计
-
-### 目标预测
-
-根据当前航迹数据：
-
-* 方位角
-* 距离
-* 估计速度
-* 估计角速度
-
-计算目标短期预测位置，并在 PPI 界面显示：
-
-```text
-+1 s
-+2 s
-+3 s
-```
+- 雷达扫描启动与停止
+- TCP 客户端连接
+- 自定义文本协议解析
+- 多客户端独立数据缓冲
+- 雷达目标位置更新
+- 雷达坐标到屏幕坐标转换
+- PPI 距离环与方位刻度
+- 动态扫描波束
+- 目标点显示
+- 历史航迹显示
+- 目标信息表格
+- CTest 自动化测试
 
 ---
 
-## PPI 雷达显示
+## 技术栈
 
-使用 Qt `QWidget + QPainter` 实现自定义雷达显示区域。
+- C++17
+- Qt 6
+- Qt Widgets
+- Qt Network
+- QTcpServer
+- QTcpSocket
+- QPainter
+- QConicalGradient
+- QTimer
+- CMake
+- CTest
+- Git
 
-界面包含：
+---
 
-* 雷达扫描圆
-* 距离环
-* N / E / S / W 方向标识
-* 当前扫描波束
-* 当前目标位置
-* 历史航迹
-* 预测位置
-* `Tracking / Lost` 状态
-* 目标编号
-* 目标选择
-* 航迹信息 Inspector
-
-目标数据采用：
-
-```text
-Azimuth + Range
-```
-
-表示，并转换为屏幕坐标后进行绘制。
+## 项目结构
 
 ```text
-Radar Data
-    │
-    ▼
-极坐标
-    │
-    ▼
-屏幕坐标
-    │
-    ▼
-QPainter
-    │
-    ▼
-PPI Radar
+RadarSimulator
+├── main.cpp
+├── mainwindow.h
+├── mainwindow.cpp
+├── mainwindow.ui
+├── RadarServer.h
+├── RadarServer.cpp
+├── RadarSimulation.h
+├── RadarSimulation.cpp
+├── RadarWidget.h
+├── RadarWidget.cpp
+├── shared
+│   ├── LineBuffer.hpp
+│   └── LineProtocol.hpp
+├── tests
+│   ├── protocol_test.cpp
+│   ├── radar_server_state_test.cpp
+│   └── tcp_client_test.cpp
+├── docs
+├── CMakeLists.txt
+├── LICENSE
+└── README.md
 ```
 
 ---
 
-# 系统架构
-
-项目按照功能职责划分为四个主要模块：
-
-```text
-                         ┌──────────────────┐
-                         │    MainWindow    │
-                         │    界面与控制     │
-                         └───────┬──────────┘
-                                 │
-                    ┌────────────┴────────────┐
-                    │                         │
-                    ▼                         ▼
-           ┌─────────────────┐       ┌─────────────────┐
-           │   RadarWidget   │       │   RadarServer   │
-           │    PPI绘制      │       │   TCP + 调度    │
-           └────────┬────────┘       └────────┬────────┘
-                    │                         │
-                    │                         ▼
-                    │                ┌──────────────────┐
-                    └───────────────►│ RadarSimulation  │
-                                     │ 目标/扫描/探测/   │
-                                     │ 航迹计算          │
-                                     └──────────────────┘
-```
+## 核心模块
 
 ### MainWindow
 
-负责应用程序界面和用户操作：
+负责整个应用程序界面的组织与交互，包括：
 
-* 主窗口
-* 参数设置
-* Start / Stop
-* 航迹表格
-* Track Inspector
-* 雷达状态显示
+- 按钮操作
+- 状态显示
+- 目标信息表格
+- RadarWidget 管理
 
 ### RadarWidget
 
-负责 PPI 雷达界面绘制：
+负责 PPI 雷达界面的绘制，包括：
 
-* 雷达背景
-* 距离环
-* 扫描波束
-* 目标
-* 历史航迹
-* 预测位置
-* 目标选择
+- 雷达圆盘
+- 距离环
+- 方位刻度
+- 扫描波束
+- 目标点
+- 历史航迹
 
-核心原则：
+核心绘图入口：
 
-> **RadarWidget 负责“画”，RadarSimulation 负责“算”。**
+```cpp
+void RadarWidget::paintEvent(QPaintEvent *event)
+```
+
+主要使用 Qt 的 `QPainter` 完成二维绘制。
 
 ### RadarServer
 
-负责网络通信和运行调度：
+负责 TCP 服务端通信和命令处理，包括：
 
-* `QTcpServer`
-* `QTcpSocket`
-* TCP 客户端管理
-* 命令接收与处理
-* 雷达模拟周期调度
-* 向客户端发送检测信息
+- 监听客户端连接
+- 接收 TCP 数据
+- 解析文本命令
+- 控制雷达运行状态
+
+当前默认监听端口：
+
+```text
+9000
+```
 
 ### RadarSimulation
 
-负责核心雷达模拟算法：
+负责雷达模拟相关的数据与状态更新。
 
-* 目标运动
-* 雷达扫描
-* 目标探测
-* 航迹建立
-* 航迹更新
-* `Tracking / Lost`
-* 速度估计
-* 角速度估计
-* 历史数据
-* 短期位置预测
+具体模拟逻辑以当前源码实现为准。
 
----
+### LineBuffer
 
-# 数据处理流程
+TCP 是字节流协议，因此一次 `readyRead()` 不一定对应一条完整命令。
 
-雷达模拟数据主要经过以下过程：
+`LineBuffer` 用于：
 
-```text
-RadarTarget
-    │
-    │ 雷达扫描
-    ▼
-RadarDetection
-    │
-    │ 连续检测
-    ▼
-RadarTrack
-    │
-    ├── 当前状态
-    ├── 速度估计
-    ├── 历史数据
-    └── 位置预测
-    │
-    ▼
-RadarWidget
-    │
-    ▼
-PPI 雷达界面
-```
+- 缓存 TCP 数据
+- 处理分包
+- 处理粘包
+- 按 `\r\n` 提取完整文本帧
 
-其中：
+项目为每一个 `QTcpSocket` 保存独立缓冲区，避免不同客户端的数据互相拼接。
 
-* `RadarTarget` 表示模拟目标的真实运动状态
-* `RadarDetection` 表示一次雷达检测结果
-* `RadarTrack` 表示由多次检测结果形成的目标航迹
+### LineProtocol
 
----
-
-# TCP 通信
-
-项目使用 Qt Network 模块实现 TCP Server。
-
-核心组件：
-
-```text
-QTcpServer
-QTcpSocket
-```
-
-默认监听端口：
-
-```text
-9000
-```
-
-客户端可以通过文本命令控制或查询雷达状态。
+负责将文本命令解析为程序内部命令。
 
 例如：
 
 ```text
+START_SCAN
+STOP_SCAN
+MOVE ...
 GET_STATUS
 GET_POSITION
-MOVE 200 150
-STOP
 ```
 
-典型通信：
+协议采用：
 
 ```text
-GET_STATUS
-        ↓
-STATUS OK
+\r\n
 ```
 
-```text
-GET_POSITION
-        ↓
-POS 125 350
-```
-
-```text
-MOVE 200 150
-        ↓
-STATUS MOVED
-```
+作为一条命令的结束标志。
 
 ---
 
-# 自定义应用层协议
+## PPI 绘制原理
 
-项目使用基于 `CRLF` 的简单文本协议。
+雷达目标可以通过距离和方位信息映射到 PPI 界面。
+
+首先将目标实际距离映射到 PPI 半径：
+
+```text
+r_screen = range / maxRange × R
+```
+
+然后根据方位角计算屏幕坐标：
+
+```text
+x = cx + r_screen × sin(angle)
+y = cy - r_screen × cos(angle)
+```
+
+其中 `(cx, cy)` 为雷达圆心。
+
+Qt 屏幕坐标的 Y 轴向下，因此 Y 坐标需要进行方向转换。
+
+PPI 绘制主要包括：
+
+```text
+背景
+↓
+距离环
+↓
+方位刻度
+↓
+扫描波束
+↓
+历史航迹
+↓
+当前目标
+↓
+文字信息
+```
+
+扫描波束使用 `QConicalGradient` 实现渐变效果。
+
+---
+
+## 动态刷新
+
+雷达界面的基本刷新流程：
+
+```text
+QTimer
+↓
+更新扫描角度 / 目标状态
+↓
+update()
+↓
+paintEvent()
+↓
+QPainter 重新绘制
+```
+
+`paintEvent()` 主要负责显示，不负责核心业务状态更新。
+
+---
+
+## TCP 测试
+
+项目包含一个 TCP 客户端测试程序：
+
+```text
+tcp_client_test
+```
+
+它可以连接正在运行的 RadarSimulator，并发送真实 TCP 命令。
 
 例如：
 
 ```text
-GET_STATUS\r\n
+STOP_SCAN
 ```
 
-服务器返回：
+服务端返回：
 
 ```text
-STATUS OK\r\n
+STATUS SCAN_STOPPED
 ```
 
-协议相关代码位于：
+该测试主要用于验证完整 TCP 通信链路。
+
+---
+
+## 自动化测试
+
+项目使用 CTest 管理自动化测试。
+
+当前注册的测试包括：
 
 ```text
-shared/
-├── LineBuffer.hpp
-└── LineProtocol.hpp
+protocol_test
+radar_server_state_test
+```
+
+### protocol_test
+
+主要测试：
+
+- LineBuffer
+- 文本协议
+- 分包处理
+- 命令解析
+
+### radar_server_state_test
+
+主要测试：
+
+- RadarServer 启动
+- START_SCAN
+- STOP_SCAN
+- 雷达运行状态
+- 扫描状态变化
+
+执行测试：
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+如果 Qt 自带的 CTest 没有加入 PATH，也可以使用完整路径执行，例如：
+
+```bat
+"D:\Qt\Tools\CMake_64\bin\ctest.exe" --test-dir "build目录" --output-on-failure
 ```
 
 ---
 
-## TCP 数据分包处理
+## 编译环境
 
-TCP 是字节流协议，一次 `readyRead()` 不一定对应一条完整消息。
-
-例如：
-
-```text
-GET_STATUS\r\n
-```
-
-可能被拆成：
-
-```text
-GET_STA
-```
-
-和：
-
-```text
-TUS\r\n
-```
-
-因此项目使用 `LineBuffer` 对接收到的数据进行缓存和组包。
-
-同时支持一次接收到多条消息：
-
-```text
-GET_STATUS\r\nGET_POSITION\r\n
-```
-
-数据处理流程：
-
-```text
-QTcpSocket
-     │
-     ▼
-LineBuffer
-     │
-     ▼
-LineProtocol
-     │
-     ▼
-Command
-     │
-     ▼
-RadarServer
-```
-
-这样将 TCP 字节流处理和具体业务命令解析进行了分离。
-
----
-
-# 项目结构
-
-```text
-RadarSimulator/
-│
-├── docs/
-│   ├── radar_simulator.png
-│   ├── radar_simulator_wsl2.png
-│   └── radar_simulator_qemu.png
-│
-├── shared/
-│   ├── LineBuffer.hpp
-│   └── LineProtocol.hpp
-│
-├── tests/
-│   ├── protocol_test.cpp
-│   └── tcp_client_test.cpp
-│
-├── CMakeLists.txt
-├── .gitignore
-├── LICENSE
-├── README.md
-│
-├── main.cpp
-│
-├── mainwindow.cpp
-├── mainwindow.h
-├── mainwindow.ui
-│
-├── RadarServer.cpp
-├── RadarServer.h
-│
-├── RadarSimulation.cpp
-├── RadarSimulation.h
-│
-├── RadarWidget.cpp
-└── RadarWidget.h
-```
-
----
-
-# 技术栈
-
-| 技术         | 使用场景       |
-| ---------- | ---------- |
-| C++17      | 核心程序开发     |
-| Qt 6       | 桌面应用开发     |
-| Qt Widgets | GUI        |
-| QPainter   | PPI 雷达绘制   |
-| QTcpServer | TCP 服务端    |
-| QTcpSocket | TCP 网络通信   |
-| QTimer     | 周期性模拟与界面刷新 |
-| CMake      | 项目构建       |
-| Git        | 版本控制       |
-
----
-
-# 编译环境
-
-项目使用 CMake 构建。
-
-主要开发环境：
+当前项目主要开发和验证环境：
 
 ```text
 Windows
-Qt 6.x
-C++17
-CMake 3.19+
+Qt 6.11.1
 MinGW 64-bit
+CMake
+C++17
 ```
 
-项目 CMake 配置使用 Qt：
-
-```text
-Core
-Widgets
-Network
-```
+推荐使用 Qt Creator，直接打开项目中的 `CMakeLists.txt` 进行配置和编译。
 
 ---
 
-# 运行环境验证
+## 构建与运行
 
-目前已经完成以下环境的实际运行验证。
+### 1. 克隆项目
 
-### Windows
-
-已验证：
-
-* Qt 6.x
-* C++17
-* CMake
-* MinGW 64-bit
-* RadarSimulator GUI 正常运行
-
-### WSL2 Ubuntu
-
-已验证：
-
-* CMake 配置
-* C++ 编译
-* RadarSimulator GUI 运行
-
-### QEMU + Ubuntu
-
-进一步在 QEMU 虚拟机中的 Ubuntu 环境完成：
-
-* Ubuntu 图形环境运行
-* RadarSimulator GUI 启动
-* RadarSimulator 正常运行
-
-整体验证路径：
-
-```text
-Windows
-   │
-   ▼
-WSL2 Ubuntu
-   │
-   ▼
-QEMU
-   │
-   ▼
-Ubuntu
-   │
-   ▼
-RadarSimulator
-```
-
-以上环境均为本项目的实际运行验证结果。
-
----
-
-# 编译与运行
-
-## 1. 克隆项目
+Gitee：
 
 ```bash
-git clone https://github.com/cyclone367/RadarSimulator.git
-cd RadarSimulator
+git clone https://gitee.com/cyclone367/radar-simulator.git
 ```
-
-## 2. 配置项目
-
-```bash
-cmake -S . -B build
-```
-
-## 3. 编译
-
-```bash
-cmake --build build
-```
-
-编译完成后运行生成的 `RadarSimulator` 程序。
-
-> Qt 项目运行时需要对应的 Qt 运行库和平台插件。具体运行方式取决于当前操作系统及 Qt 安装环境。
-
----
-
-# 测试
-
-项目包含两个独立测试程序。
-
-## protocol_test
-
-用于验证通信协议和数据处理：
-
-* 命令解析
-* 参数解析
-* CRLF
-* 空消息
-* 未知命令
-* TCP 分包
-* 多条消息
-* 完整消息处理流程
-
-编译：
-
-```bash
-cmake --build build --target protocol_test
-```
-
-运行：
-
-```text
-protocol_test.exe
-```
-
-测试成功：
-
-```text
-All tests passed!
-```
-
----
-
-## tcp_client_test
-
-用于测试实际 TCP Server 通信。
-
-首先启动：
-
-```text
-RadarSimulator
-```
-
-确认 RadarServer 监听：
-
-```text
-9000
-```
-
-然后编译：
-
-```bash
-cmake --build build --target tcp_client_test
-```
-
-运行客户端测试。
-
-测试示例：
-
-```text
-GET_STATUS
-→ STATUS OK
-
-GET_POSITION
-→ POS 125 350
-
-MOVE 200 150
-→ STATUS MOVED
-```
-
----
-
-# 项目重点
-
-本项目主要实践以下 C++ / Qt 开发内容：
-
-* Qt Widgets 桌面应用开发
-* Qt 自定义绘图
-* `QPainter` 图形绘制
-* `QTcpServer / QTcpSocket` TCP 通信
-* TCP 字节流与消息边界处理
-* 自定义应用层协议
-* C++ 类职责划分
-* 定时器驱动的实时模拟
-* 目标检测与航迹跟踪
-* 运动参数估计
-* 历史数据管理
-* 短期位置预测
-* CMake 多目标项目组织
-* 独立测试程序
-* Windows / WSL2 / QEMU Ubuntu 多环境运行验证
-
----
-
-# License
-
-本项目采用 MIT License。
-
-详见 [LICENSE](LICENSE)。
-
----
-
-# Author
-
-**Junfeng Li**
 
 GitHub：
 
-https://github.com/cyclone367
+```bash
+git clone https://github.com/cyclone367/RadarSimulator.git
+```
+
+国内用户推荐优先使用 Gitee。
+
+进入项目目录：
+
+```bash
+cd radar-simulator
+```
+
+### 2. 使用 Qt Creator
+
+使用 Qt Creator 打开 `CMakeLists.txt`，选择 Qt6 MinGW Kit。
+
+完成 CMake 配置后直接编译运行即可。
+
+### 3. 启动 RadarSimulator
+
+程序正常启动后，TCP 服务端会监听 9000 端口。
+
+如果出现：
+
+```text
+The bound address is already in use
+```
+
+说明 9000 端口已经被其他程序占用。
+
+可以使用以下命令检查端口：
+
+```bat
+netstat -ano | findstr :9000
+```
+
+---
+
+## 系列文章
+
+本项目配套教程持续更新中。
+
+### 第一篇
+
+**C++ Qt6 雷达模拟器实战（一）：项目架构与整体设计**
+
+### 第二篇
+
+**C++ Qt6 雷达模拟器实战（二）：TCP 通信与自定义文本协议**
+
+### 第三篇
+
+**C++ Qt6 雷达模拟器实战（三）：雷达目标、坐标转换与数学模型**
+
+### 第四篇
+
+**C++ Qt6 雷达模拟器实战（四）：使用 QPainter 绘制 PPI 雷达界面**
+
+后续将继续介绍 TCP、雷达数据与 Qt 图形界面的完整整合。
+
+---
+
+## 相关内容
+
+公众号：
+
+```text
+Junfeng的技术笔记
+```
+
+项目开发过程、技术文章和配套视频会持续更新。
+
+---
+
+## 项目仓库
+
+Gitee：
+
+https://gitee.com/cyclone367/radar-simulator
+
+GitHub：
+
+https://github.com/cyclone367/RadarSimulator
+
+国内用户推荐优先访问 Gitee。
+
+---
+
+## 项目说明
+
+本项目主要用于：
+
+- C++ 学习
+- Qt6 学习
+- TCP 网络编程
+- 桌面软件开发
+- 雷达显示原理学习
+- 项目实践与技术交流
+
+项目中的雷达模型主要用于软件开发和可视化演示，并不是专业工程雷达信号处理系统。
+
+如果本项目对你有帮助，欢迎 Star。
+
+引用或二次发布时，请保留原项目版权及许可证信息。
+
+---
+
+## License
+
+本项目采用 MIT License。
+
+允许学习、使用、修改、分发和商业使用，但需要保留原始版权声明和许可证信息。
+
+Copyright (c) 2026 Junfeng Li
