@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
 
         std::cout << "Received: "
                   << response.toStdString();
+
+        break;
     }
 
     socket.disconnectFromHost();

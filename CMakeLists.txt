@@ -9,6 +9,8 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network)
 
 qt_standard_project_setup()
 
+enable_testing()
+
 qt_add_executable(RadarSimulator
     WIN32 MACOSX_BUNDLE
     main.cpp
@@ -41,6 +43,16 @@ add_executable(radar_server_state_test
     RadarSimulation.h
     shared/LineProtocol.hpp
     shared/LineBuffer.hpp
+)
+
+add_test(
+    NAME protocol_test
+    COMMAND protocol_test
+)
+
+add_test(
+    NAME radar_server_state_test
+    COMMAND radar_server_state_test
 )
 
 target_link_libraries(tcp_client_test
