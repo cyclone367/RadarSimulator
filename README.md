@@ -20,7 +20,7 @@
 
 ## 项目效果
 
-![RadarSimulator 运行效果](docs/radar_simulator.png)
+![RadarSimulator 运行效果](docs/radar_simulator.gif)
 
 RadarSimulator 使用 Qt6 Widgets 构建桌面界面，通过 TCP 接收控制命令，并在 PPI 区域实时显示雷达扫描和目标状态。
 
