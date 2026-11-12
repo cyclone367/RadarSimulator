@@ -6,11 +6,12 @@
 #include <QList>
 #include <QTimer>
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QHash>
 
 #include "shared/LineBuffer.hpp"
 #include "shared/LineProtocol.hpp"
-#include "RadarSimulation.h"
+#include "RadarFrame.h"
 
 class RadarServer : public QObject
 {
@@ -20,6 +21,9 @@ public:
     explicit RadarServer(QObject *parent = nullptr);
 
     bool start(quint16 port);
+
+    // Call on the server thread. The first capture starts the live timeline.
+    RadarFrame snapshot();
 
     const QList<RadarTrack>& getTracks() const;
 
@@ -42,6 +46,7 @@ public:
 
 signals:
     void trackUpdated();
+    void simulationStepCompleted();
 
 private slots:
     void onNewConnection();
@@ -65,4 +70,7 @@ private:
     QList<int> detectedTargetIds;              // 当前扫描周期检测到的目标ID列表
 
     QTimer scanTimer;                          // 扫描定时器，用于周期性执行雷达扫描
+    QElapsedTimer snapshotClock;
+    quint64 nextFrameSequence = 0;
+    qint64 lastFrameTimeUs = 0;
 };

@@ -1,18 +1,16 @@
 #pragma once
 
 #include <QWidget>
-#include <QTimer>
-
-class RadarServer;
+#include "RadarFrame.h"
 
 class RadarWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit RadarWidget(RadarServer *server,
-                         QWidget *parent = nullptr);
+    explicit RadarWidget(QWidget *parent = nullptr);
 
+    void setFrame(const RadarFrame& frame);
     void setSelectedTargetId(int id);
 
 signals:
@@ -24,9 +22,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 private:
-    RadarServer *server;
-
-    QTimer timer;
+    RadarFrame frame;
 
     // 当前选中的目标 ID
     int selectedTargetId = -1;

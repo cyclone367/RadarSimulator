@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+#include <algorithm>
+
 RadarServer::RadarServer(QObject *parent)
     : QObject(parent)
 {
@@ -150,7 +152,31 @@ RadarServer::RadarServer(QObject *parent)
                 }
 
                 simulation.updateTrackStates();
+                emit simulationStepCompleted();
             });
+}
+
+RadarFrame RadarServer::snapshot()
+{
+    if (!snapshotClock.isValid())
+        snapshotClock.start();
+    else
+        lastFrameTimeUs = std::max(snapshotClock.nsecsElapsed() / 1000,
+                                   lastFrameTimeUs + 1);
+
+    RadarFrame frame;
+    frame.sequence = nextFrameSequence++;
+    frame.elapsedMicroseconds = lastFrameTimeUs;
+    frame.scan.running = radarRunning;
+    frame.scan.scanning = scanning;
+    frame.scan.angleDegrees = simulation.getScanAngle();
+    frame.scan.beamWidthDegrees = simulation.getBeamWidth();
+    frame.scan.maxRangeMeters = simulation.getMaxDetectionRange();
+    frame.scan.speedDegreesPerSecond = simulation.getScanSpeed();
+    frame.targets = simulation.getTargets();
+    frame.tracks = simulation.getTracks();
+    frame.detectedTargetIds = detectedTargetIds;
+    return frame;
 }
 
 const QList<RadarTrack>& RadarServer::getTracks() const

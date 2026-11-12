@@ -1,29 +1,21 @@
 #include "RadarWidget.h"
-#include "RadarServer.h"
 
+#include <QDebug>
 #include <QPainter>
 #include <QPainterPath>
 #include <QtMath>
 #include <QMouseEvent>
 
-RadarWidget::RadarWidget(RadarServer *server,
-                         QWidget *parent)
+RadarWidget::RadarWidget(QWidget *parent)
     : QWidget(parent)
-    , server(server)
 {
     setMinimumSize(500, 500);
+}
 
-    timer.setInterval(50);
-
-    connect(&timer,
-            &QTimer::timeout,
-            this,
-            [this]()
-            {
-                update();
-            });
-
-    timer.start();
+void RadarWidget::setFrame(const RadarFrame& snapshot)
+{
+    frame = snapshot;
+    update();
 }
 
 void RadarWidget::setSelectedTargetId(int id)
@@ -56,7 +48,9 @@ void RadarWidget::paintEvent(QPaintEvent *event)
     int radius = size / 2 - 20;
 
     const double maxDistance =
-        server->getMaxDetectionRange();
+        frame.scan.maxRangeMeters;
+    if (maxDistance <= 0.0)
+        return;
 
     // ==================================================
     // 2. 绘制最外层雷达圆
@@ -167,10 +161,10 @@ void RadarWidget::paintEvent(QPaintEvent *event)
     // ==================================================
 
     double scanAngle =
-        server->getScanAngle();
+        frame.scan.angleDegrees;
 
     double beamWidth =
-        server->getBeamWidth();
+        frame.scan.beamWidthDegrees;
 
     double sectorWidth =
         qMax(beamWidth, 6.0);
@@ -207,14 +201,14 @@ void RadarWidget::paintEvent(QPaintEvent *event)
     // ==================================================
 
     const QList<RadarTrack>& tracks =
-        server->getTracks();
+        frame.tracks;
 
     // ==================================================
     // 10. 获取当前正在被扫描到的目标
     // ==================================================
 
     const QList<int>& detectedIds =
-        server->getDetectedTargetIds();
+        frame.detectedTargetIds;
 
     // ==================================================
     // 11. 绘制所有 Track
@@ -659,20 +653,16 @@ void RadarWidget::mousePressEvent(QMouseEvent *event)
     // ==================================================
 
     const double maxDistance =
-        server->getMaxDetectionRange();
+        frame.scan.maxRangeMeters;
+    if (maxDistance <= 0.0)
+        return;
 
     // ==================================================
     // 4. 获取所有 Track
     // ==================================================
 
     const QList<RadarTrack>& tracks =
-        server->getTracks();
-
-    // ==================================================
-    // 5. 默认取消选择
-    // ==================================================
-
-    selectedTargetId = -1;
+        frame.tracks;
 
     // ==================================================
     // 6. 判断鼠标是否点击到了某个目标
@@ -745,13 +735,7 @@ void RadarWidget::mousePressEvent(QMouseEvent *event)
 
         if (distance <= 15.0)
         {
-            selectedTargetId =
-                track.id;
-
             emit targetSelected(track.id);
-
-            qDebug() << "Target selected:"
-                     << selectedTargetId;
 
             return;
         }
@@ -762,4 +746,5 @@ void RadarWidget::mousePressEvent(QMouseEvent *event)
     // ==================================================
 
     qDebug() << "No target selected";
+    emit targetSelected(-1);
 }

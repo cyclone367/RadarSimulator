@@ -1,399 +1,92 @@
 # RadarSimulator
 
-一个基于 **C++17 + Qt6** 开发的桌面雷达模拟器项目。
+基于 **C++17、Qt 6 Widgets、Qt Network 和 CMake** 的桌面雷达模拟器，用于学习、研究和工程演示。项目模拟目标运动、扫描与航迹显示，范围限于软件仿真和可视化。
 
-项目主要用于学习和实践：
+A C++17 desktop radar simulator built with Qt 6 Widgets, Qt Network, and CMake for learning, research, and engineering demos. Its scope is software simulation and visualization.
 
-- Qt Widgets 桌面应用开发
-- TCP 网络通信
-- 自定义文本协议
-- 雷达目标与坐标转换
-- PPI 雷达界面绘制
-- QPainter / QConicalGradient
-- CMake
-- Git
-- 自动化测试
+**当前公开版本 / Current release · v0.3.0 Preview**
 
-项目目前已经实现 TCP 控制、雷达扫描、目标显示、历史航迹、PPI 绘制以及基础测试功能。
+| 平台 | 发布说明与校验文件 | Windows x64 绿色版 |
+| --- | --- | --- |
+| GitHub | [Release](https://github.com/cyclone367/RadarSimulator/releases/tag/v0.3.0) | [下载 ZIP](https://github.com/cyclone367/RadarSimulator/releases/download/v0.3.0/RadarSimulator-v0.3.0-Windows-x64.zip) |
+| Gitee | [Release](https://gitee.com/cyclone367/radar-simulator/releases/tag/v0.3.0) | [下载 ZIP](https://gitee.com/cyclone367/radar-simulator/releases/download/v0.3.0/RadarSimulator-v0.3.0-Windows-x64.zip) |
 
----
+## Windows x64 绿色版
 
-## 项目效果
+1. 下载 ZIP，可用同页的 `SHA256SUMS.txt` 核对文件。
+2. 完整解压，保留 DLL 和插件子目录。
+3. 双击 `RadarSimulator.exe`，在窗口中启动扫描。运行依赖随包提供，无需安装 Qt 或 Visual Studio。
 
-![RadarSimulator 运行效果](docs/radar_simulator.gif)
+程序启动时需要 TCP 9000 端口。若无法启动，可用 `netstat -ano | findstr :9000` 检查是否已有进程占用。Preview 已通过本机构建、测试及独立解压运行检查，跨机器 Windows 验证待完成。
 
-RadarSimulator 使用 Qt6 Widgets 构建桌面界面，通过 TCP 接收控制命令，并在 PPI 区域实时显示雷达扫描和目标状态。
+## 实际运行画面
 
-主要功能包括：
+![RadarSimulator 实际运行演示](docs/radar_simulator.gif)
 
-- 雷达扫描启动与停止
-- TCP 客户端连接
-- 自定义文本协议解析
-- 多客户端独立数据缓冲
-- 雷达目标位置更新
-- 雷达坐标到屏幕坐标转换
-- PPI 距离环与方位刻度
-- 动态扫描波束
-- 目标点显示
-- 历史航迹显示
-- 目标信息表格
-- CTest 自动化测试
+上图为仓库已有的实际运行演示。当前 Windows x64 版本的静态截图待补。
 
----
+## 已实现功能
 
-## 技术栈
+- **PPI 显示** · 距离环、方位刻度、扫描波束、检测标记、预测点与历史航迹。
+- **目标模拟** · 按距离变化率和角速度推进目标，按波束与探测范围判定检测，更新航迹和跟踪状态。
+- **桌面交互** · 启停扫描，调整扫描参数，通过雷达图或航迹表选中航迹并查看详情。
+- **TCP 控制** · 处理扫描控制、状态及位置查询等文本命令，按客户端独立缓存字节流。
+- **自动化测试** · CTest 覆盖文本协议和服务端扫描状态。
 
-- C++17
-- Qt 6
-- Qt Widgets
-- Qt Network
-- QTcpServer
-- QTcpSocket
-- QPainter
-- QConicalGradient
-- QTimer
-- CMake
-- CTest
-- Git
+录制与回放属于 [v0.4 设计](docs/V0.4_DESIGN.md)。
 
----
+## 开发与发布构建
 
-## 项目结构
+| 用途 | 已使用的环境 |
+| --- | --- |
+| 日常开发 | Windows、Qt Creator、Qt 6.11.1 MinGW x64 Kit、CMake、C++17 |
+| v0.3.0 Preview 发布构建 | Windows x64 Release、Qt 6.11.1 `msvc2022_64`、MSVC 19.51.36260.0、Windows SDK 10.0.26100.0、CMake 4.3.1-msvc1、Ninja |
+
+CMake 项目声明最低版本 3.19，依赖 Qt 6.5 或更新版本的 Core、Widgets 和 Network。可用 Qt Creator 打开 `CMakeLists.txt` 并选择配套 Kit。MinGW 与 MSVC 分别使用各自的 Qt 库和构建目录。
+
+复现 Windows x64 Release 时，在 x64 MSVC 开发者终端运行以下命令。按本机安装路径替换 Qt 目录，并确保 CMake 和 Ninja 可用。
+
+```powershell
+cmake -S . -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=D:/Qt/6.11.1/msvc2022_64
+cmake --build build-release
+$env:Path = "D:\Qt\6.11.1\msvc2022_64\bin;$env:Path"
+ctest --test-dir build-release --output-on-failure
+```
+
+## 目录与核心模块
+
+| 路径 | 职责 |
+| --- | --- |
+| `main.cpp` | 创建应用和雷达服务，监听 9000 端口并打开窗口 |
+| `mainwindow.*` | 参数与扫描控制、状态栏、航迹表与详情、选中状态同步 |
+| `RadarWidget.*` | 使用 QPainter 绘制 PPI，处理航迹点击选择 |
+| `RadarServer.*` | TCP 连接与协议响应，驱动实时扫描更新 |
+| `RadarSimulation.*` | 目标推进、波束检测、航迹更新及超时 |
+| `shared/` | CRLF 分帧与文本命令解析 |
+| `tests/` | 两项 CTest 和独立 TCP 客户端 |
+| `docs/` | 运行演示、截图和技术设计 |
+
+PPI 将距离按探测范围缩放为屏幕半径 `r`。以北向为零方位，屏幕坐标为 `x = cx + r × sin(angle)`、`y = cy − r × cos(angle)`。
+
+## TCP 协议示例
+
+每条命令以 CRLF（`\r\n`）结束。发送 `START_SCAN` 或 `STOP_SCAN` 可启停扫描，`GET_STATUS` 查询服务状态，`GET_POSITION` 查询协议维护的位置，`MOVE 100 200` 设置该位置。扫描控制示例：
 
 ```text
-RadarSimulator
-├── main.cpp
-├── mainwindow.h
-├── mainwindow.cpp
-├── mainwindow.ui
-├── RadarServer.h
-├── RadarServer.cpp
-├── RadarSimulation.h
-├── RadarSimulation.cpp
-├── RadarWidget.h
-├── RadarWidget.cpp
-├── shared
-│   ├── LineBuffer.hpp
-│   └── LineProtocol.hpp
-├── tests
-│   ├── protocol_test.cpp
-│   ├── radar_server_state_test.cpp
-│   └── tcp_client_test.cpp
-├── docs
-├── CMakeLists.txt
-├── LICENSE
-└── README.md
+客户端 → STOP_SCAN\r\n
+服务端 ← STATUS SCAN_STOPPED\r\n
 ```
 
----
-
-## 核心模块
-
-### MainWindow
-
-负责整个应用程序界面的组织与交互，包括：
-
-- 按钮操作
-- 状态显示
-- 目标信息表格
-- RadarWidget 管理
-
-### RadarWidget
-
-负责 PPI 雷达界面的绘制，包括：
-
-- 雷达圆盘
-- 距离环
-- 方位刻度
-- 扫描波束
-- 目标点
-- 历史航迹
-
-核心绘图入口：
-
-```cpp
-void RadarWidget::paintEvent(QPaintEvent *event)
-```
-
-主要使用 Qt 的 `QPainter` 完成二维绘制。
-
-### RadarServer
-
-负责 TCP 服务端通信和命令处理，包括：
-
-- 监听客户端连接
-- 接收 TCP 数据
-- 解析文本命令
-- 控制雷达运行状态
-
-当前默认监听端口：
-
-```text
-9000
-```
-
-### RadarSimulation
-
-负责雷达模拟相关的数据与状态更新。
-
-具体模拟逻辑以当前源码实现为准。
-
-### LineBuffer
-
-TCP 是字节流协议，因此一次 `readyRead()` 不一定对应一条完整命令。
-
-`LineBuffer` 用于：
-
-- 缓存 TCP 数据
-- 处理分包
-- 处理粘包
-- 按 `\r\n` 提取完整文本帧
-
-项目为每一个 `QTcpSocket` 保存独立缓冲区，避免不同客户端的数据互相拼接。
-
-### LineProtocol
-
-负责将文本命令解析为程序内部命令。
-
-例如：
-
-```text
-START_SCAN
-STOP_SCAN
-MOVE ...
-GET_STATUS
-GET_POSITION
-```
-
-协议采用：
-
-```text
-\r\n
-```
-
-作为一条命令的结束标志。
-
----
-
-## PPI 绘制原理
-
-雷达目标可以通过距离和方位信息映射到 PPI 界面。
-
-首先将目标实际距离映射到 PPI 半径：
-
-```text
-r_screen = range / maxRange × R
-```
-
-然后根据方位角计算屏幕坐标：
-
-```text
-x = cx + r_screen × sin(angle)
-y = cy - r_screen × cos(angle)
-```
-
-其中 `(cx, cy)` 为雷达圆心。
-
-Qt 屏幕坐标的 Y 轴向下，因此 Y 坐标需要进行方向转换。
-
-PPI 绘制主要包括：
-
-```text
-背景
-↓
-距离环
-↓
-方位刻度
-↓
-扫描波束
-↓
-历史航迹
-↓
-当前目标
-↓
-文字信息
-```
-
-扫描波束使用 `QConicalGradient` 实现渐变效果。
-
----
-
-## 动态刷新
-
-雷达界面的基本刷新流程：
-
-```text
-QTimer
-↓
-更新扫描角度 / 目标状态
-↓
-update()
-↓
-paintEvent()
-↓
-QPainter 重新绘制
-```
-
-`paintEvent()` 主要负责显示，不负责核心业务状态更新。
-
----
-
-## TCP 测试
-
-项目包含一个 TCP 客户端测试程序：
-
-```text
-tcp_client_test
-```
-
-它可以连接正在运行的 RadarSimulator，并发送真实 TCP 命令。
-
-例如：
-
-```text
-STOP_SCAN
-```
-
-服务端返回：
-
-```text
-STATUS SCAN_STOPPED
-```
-
-该测试主要用于验证完整 TCP 通信链路。
-
----
+`tcp_client_test` 可连接已启动的本机应用并发送 `STOP_SCAN`，用于手动验证 TCP 链路。
 
 ## 自动化测试
 
-项目使用 CTest 管理自动化测试。
+| CTest | 覆盖范围 |
+| --- | --- |
+| `protocol_test` | 文本命令解析、参数校验、分包与粘包 |
+| `radar_server_state_test` | 实际 TCP 连接和扫描状态切换 |
 
-当前注册的测试包括：
-
-```text
-protocol_test
-radar_server_state_test
-```
-
-### protocol_test
-
-主要测试：
-
-- LineBuffer
-- 文本协议
-- 分包处理
-- 命令解析
-
-### radar_server_state_test
-
-主要测试：
-
-- RadarServer 启动
-- START_SCAN
-- STOP_SCAN
-- 雷达运行状态
-- 扫描状态变化
-
-执行测试：
-
-```bash
-ctest --test-dir build --output-on-failure
-```
-
-如果 Qt 自带的 CTest 没有加入 PATH，也可以使用完整路径执行，例如：
-
-```bat
-"D:\Qt\Tools\CMake_64\bin\ctest.exe" --test-dir "build目录" --output-on-failure
-```
-
----
-
-## 编译环境
-
-当前项目主要开发和验证环境：
-
-```text
-Windows
-Qt 6.11.1
-MinGW 64-bit
-CMake
-C++17
-```
-
-推荐使用 Qt Creator，直接打开项目中的 `CMakeLists.txt` 进行配置和编译。
-
----
-
-## 多环境验证
-
-除了 Windows / Qt 主开发环境之外，项目还在 QEMU 和 WSL2 环境中进行了运行验证。
-
-### QEMU
-
-![RadarSimulator QEMU 运行效果](docs/radar_simulator_qemu.png)
-
-### WSL2
-
-![RadarSimulator WSL2 运行效果](docs/radar_simulator_wsl2.png)
-
----
-
-## 构建与运行
-
-### Windows x64 绿色版
-
-将发布 ZIP 完整解压到同一个目录，双击 `RadarSimulator.exe`。运行时依赖随包提供，无需安装 Qt 或 Visual Studio。请保留 DLL 和插件子目录。
-
-程序启动后监听 TCP 9000 端口。启动前请关闭正在占用该端口的其他实例。
-
-
-### 1. 克隆项目
-
-Gitee：
-
-```bash
-git clone https://gitee.com/cyclone367/radar-simulator.git
-```
-
-GitHub：
-
-```bash
-git clone https://github.com/cyclone367/RadarSimulator.git
-```
-
-国内用户推荐优先使用 Gitee。
-
-进入项目目录：
-
-```bash
-cd radar-simulator
-```
-
-### 2. 使用 Qt Creator
-
-使用 Qt Creator 打开 `CMakeLists.txt`，选择 Qt6 MinGW Kit。
-
-完成 CMake 配置后直接编译运行即可。
-
-### 3. 启动 RadarSimulator
-
-程序正常启动后，TCP 服务端会监听 9000 端口。
-
-如果出现：
-
-```text
-The bound address is already in use
-```
-
-说明 9000 端口已经被其他程序占用。
-
-可以使用以下命令检查端口：
-
-```bat
-netstat -ano | findstr :9000
-```
-
----
+构建后执行 `ctest --test-dir build-release --output-on-failure`。使用其他构建目录时替换路径。多配置生成器需额外指定 `-C Release`。独立 TCP 客户端需手动运行。
 
 ## 系列文章
 
@@ -431,43 +124,6 @@ Junfeng的技术笔记
 
 ---
 
-## 项目仓库
-
-Gitee：
-
-https://gitee.com/cyclone367/radar-simulator
-
-GitHub：
-
-https://github.com/cyclone367/RadarSimulator
-
-国内用户推荐优先访问 Gitee。
-
----
-
-## 项目说明
-
-本项目主要用于：
-
-- C++ 学习
-- Qt6 学习
-- TCP 网络编程
-- 桌面软件开发
-- 雷达显示原理学习
-- 项目实践与技术交流
-
-项目中的雷达模型主要用于软件开发和可视化演示，并不是专业工程雷达信号处理系统。
-
-如果本项目对你有帮助，欢迎 Star。
-
-引用或二次发布时，请保留原项目版权及许可证信息。
-
----
-
 ## License
 
-本项目采用 MIT License。
-
-允许学习、使用、修改、分发和商业使用，但需要保留原始版权声明和许可证信息。
-
-Copyright (c) 2026 Junfeng Li
+项目采用 [MIT License](LICENSE)。Copyright (c) 2026 Junfeng Li.
